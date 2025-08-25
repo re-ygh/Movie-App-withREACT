@@ -24,6 +24,16 @@ const App = () => {
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+
+  
+  const nextPage = () => {
+    if (page < data.total_pages) setPage(page + 1);
+  };
+
+  const prevPage = () => {
+    if (page > 1) setPage(page - 1);
+  };
 
   const fetchMovies = async (query = "") => {
     setIsLoading(true);
@@ -70,7 +80,7 @@ const App = () => {
     }
   };
 
-  useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, searchTerm);
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 1000, searchTerm);
 
   useEffect(() => {
     fetchMovies(debouncedSearchTerm);
