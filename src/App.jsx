@@ -6,8 +6,6 @@ import { useDebounce } from "@uidotdev/usehooks";
 import { getTrendingMovies, updateSearchCount } from "./appwrite.js";
 import ChangePage from "./components/ChangePage.jsx";
 
-
-
 const API_BASE_URL = "https://api.themoviedb.org/3";
 
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -26,18 +24,19 @@ const App = () => {
   const [movieList, setMovieList] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
-  const fetchMovies = async (query = "") => {
+  const fetchMovies = async (query = "", pageNum = 1) => {
     setIsLoading(true);
     setErrorMessage("");
 
     try {
       const endpoint = query
         ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
-        : `${API_BASE_URL}/discover/movie?include_adult=false&include_video=false&language=en-US&page=${page}&sort_by=popularity.desc`;
+        : `${API_BASE_URL}/discover/movie?include_adult=false&include_video=false&language=en-US&page=${pageNum}&sort_by=popularity.desc`;
 
       const response = await fetch(endpoint, API_OPTIONS);
 
@@ -48,20 +47,23 @@ const App = () => {
       const data = await response.json();
       console.log(data);
 
-      if (data.results === "False") {
-        setErrorMessage(data.Error || "Failed to fetch movies");
+      if (data.results.length === 0) {
+        setErrorMessage("No movies found for this search.");
         setMovieList([]);
+        setTotalPages(1);
         return;
       }
 
-      setMovieList(data.results || []);
+      setMovieList(data.results);
+      setTotalPages(data.total_pages);
       if (query && data.results.length > 0) {
         await updateSearchCount(query, data.results[0]);
       }
-
     } catch (error) {
       console.log(`Error fetching movies: ${error}`);
       setErrorMessage("Error fetching movies: Please try again later.");
+      setMovieList([]);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
@@ -76,28 +78,25 @@ const App = () => {
     }
   };
 
-  // const nextPage = () => {
-  //   if (page < totalPages) setPage(page + 1);
-  // };
+  const nextPage = () => {
+    if (page < totalPages) setPage(page + 1);
+  };
 
-  // const prevPage = () => {
-  //   if (page > 1) setPage(page - 1);
-  // };
+  const prevPage = () => {
+    if (page > 1) setPage(page - 1);
+  };
 
-  // const changePage = (toPage) => {
-  //    setPage(toPage);
-  // };
-
-  useDebounce(() => setDebouncedSearchTerm(searchTerm), 1000, searchTerm);
+  const changePage = (toPage) => {
+    setPage(toPage);
+  };
 
   useEffect(() => {
-    fetchMovies(debouncedSearchTerm);
-  }, [debouncedSearchTerm]);
+    fetchMovies(debouncedSearchTerm, page);
+  }, [debouncedSearchTerm, page]);
 
   useEffect(() => {
     loadTrendingMovies();
-  }, []);
-
+  }, [page]);
 
   return (
     <main>
@@ -140,11 +139,13 @@ const App = () => {
             </ul>
           )}
         </section>
-        {/* <ChangePage 
-        nextPage={nextPage} 
-        prevPage={prevPage} 
-        changePage={changePage}
-        /> */}
+        <ChangePage
+          nextPage={nextPage}
+          prevPage={prevPage}
+          currentPage={page}
+          totalPages={totalPages}
+          changePage={changePage}
+        />
       </div>
     </main>
   );
