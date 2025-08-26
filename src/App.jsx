@@ -7,7 +7,6 @@ import { getTrendingMovies, updateSearchCount } from "./appwrite.js";
 import ChangePage from "./components/ChangePage.jsx";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
-
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 
 const API_OPTIONS = {
@@ -35,13 +34,14 @@ const App = () => {
 
     try {
       const endpoint = query
-        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&page=${pageNum}`
         : `${API_BASE_URL}/discover/movie?include_adult=false&include_video=false&language=en-US&page=${pageNum}&sort_by=popularity.desc`;
 
       const response = await fetch(endpoint, API_OPTIONS);
 
       if (!response.ok) {
-        throw new Error("Failed to fetch movies");
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch movies: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
@@ -55,13 +55,13 @@ const App = () => {
       }
 
       setMovieList(data.results);
-      setTotalPages(data.total_pages);
+      setTotalPages(Math.min(data.total_pages, 500)); // Cap at 500 per TMDB limit
       if (query && data.results.length > 0) {
         await updateSearchCount(query, data.results[0]);
       }
     } catch (error) {
-      console.log(`Error fetching movies: ${error}`);
-      setErrorMessage("Error fetching movies: Please try again later.");
+      console.error(`Error fetching movies: ${error}`);
+      setErrorMessage(`Error fetching movies: ${error.message.includes("400") ? "Invalid page number. Please select a page between 1 and 500." : "Please try again later."}`);
       setMovieList([]);
       setTotalPages(1);
     } finally {
@@ -74,7 +74,7 @@ const App = () => {
       const movies = await getTrendingMovies();
       setTrendingMovies(movies);
     } catch (error) {
-      console.log(`Error fetching trending movies: ${error}`);
+      console.error(`Error fetching trending movies: ${error}`);
     }
   };
 
@@ -87,7 +87,9 @@ const App = () => {
   };
 
   const changePage = (toPage) => {
-    setPage(toPage);
+    if (toPage >= 1 && toPage <= Math.min(totalPages, 500)) {
+      setPage(toPage);
+    }
   };
 
   useEffect(() => {
@@ -126,7 +128,6 @@ const App = () => {
         )}
         <section className="all-movies">
           <h2>All Movies</h2>
-
           {isLoading ? (
             <PacmanLoader color="#6366F1" size={20} />
           ) : errorMessage ? (

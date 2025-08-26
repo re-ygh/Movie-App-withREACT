@@ -1,7 +1,7 @@
 import React from "react";
 import { SlActionUndo, SlActionRedo } from "react-icons/sl";
 
-const ChangePage = ({ nextPage, prevPage, currentPage, totalPages , changePage}) => {
+const ChangePage = ({ nextPage, prevPage, currentPage, totalPages, changePage }) => {
   // Generate page numbers for the 8 buttons
   const getPageNumbers = () => {
     const pages = [];
@@ -29,10 +29,10 @@ const ChangePage = ({ nextPage, prevPage, currentPage, totalPages , changePage})
     // Add last page if not already included
     if (totalPages !== 1 && !pages.includes(totalPages)) pages.push(totalPages);
 
-    // Ensure exactly 8 buttons (or fewer if totalPages is small)
+    // Fill remaining slots to reach 8 buttons (if possible)
     while (pages.length < 8 && pages[pages.length - 1] < totalPages) {
       const nextPage = pages[pages.length - 1] + 1;
-      if (nextPage < totalPages && !pages.includes(nextPage)) {
+      if (nextPage <= totalPages && !pages.includes(nextPage)) {
         pages.push(nextPage);
       } else {
         break;
@@ -71,12 +71,7 @@ const ChangePage = ({ nextPage, prevPage, currentPage, totalPages , changePage})
                 ? "bg-[#AB8BFF] text-white"
                 : "hover:bg-gray-200"
             }`}
-            onClick={() => {
-              if (pageNum !== currentPage) {
-                // Assuming a changePage function is passed or handled in parent
-                changePage(pageNum); // Temporary, replace with changePage(pageNum) if implemented
-              }
-            }}
+            onClick={() => changePage(pageNum)}
             disabled={pageNum === currentPage}
             aria-label={`Go to Page ${pageNum}`}
           >
